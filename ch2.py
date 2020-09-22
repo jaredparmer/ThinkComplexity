@@ -112,12 +112,22 @@ def foo():
 
 def main():
     n = 10
+    pstar = np.log(n) / n
+    # generate probabilities for ER graphs, evenly distributed from
+    # 10**(-2.5) to 10**0
     ps = np.logspace(-2.5, 0, 11)
+    # estimate prob of being connected for each above probability
     ys = [prob_connected(n, p) for p in ps]
+
+    # print results
+##    for p, y in zip(ps, ys):
+##        print(p, y)
+
+    # plot results
+    plt.axvline(pstar, color='gray')
+    plt.plot(ps, ys, color='green')
+    plt.show()
     
-##    G = make_random_graph(10, 0.3)
-##    nx.draw_circular(G, node_size=1000, with_labels=True)
-##    plt.show()
 
 if __name__ == '__main__':
     main()
