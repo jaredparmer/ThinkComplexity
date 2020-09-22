@@ -3,6 +3,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt     # nx uses this to draw figures
 import numpy as np
+import random
 
 
 def all_pairs(nodes):
@@ -19,10 +20,24 @@ def flip(p=0.5):
     return np.random.random() < p
 
 
+""" exercise 2.2: what's the order of growth for this?
+
+answer: since calling reachable_nodes is O(n + m), while making an iterator and
+accessing its first element, getting the length of the set reachable, getting
+the length of the Graph, and comparing those lengths is all constant time,
+is_connected(G) is also O(n + m).
+"""
 def is_connected(G):
     start = next(iter(G))
     reachable = reachable_nodes(G, start)
     return len(reachable) == len(G)
+
+
+""" for exercise 2.4 """
+def m_pairs(nodes, m):
+    """ returns m random pairs between given nodes """
+    pairs = list(all_pairs(nodes))
+    return random.sample(pairs, m)
 
 
 def make_complete_graph(n):
@@ -33,6 +48,16 @@ def make_complete_graph(n):
     nodes = range(n)
     G.add_nodes_from(nodes)
     G.add_edges_from(all_pairs(nodes))
+    return G
+
+
+""" for exercise 2.4 """
+def make_m_graph(n, m):
+    """ returns undirected Erdos-Renyi Graph with n nodes, m random edges """
+    G = nx.Graph()
+    nodes = range(n)
+    G.add_nodes_from(nodes)
+    G.add_edges_from(m_pairs(nodes, m))
     return G
 
 
@@ -54,12 +79,37 @@ def prob_connected(n, p, iters=100):
     return np.mean(tf)
 
 
+""" for exercise 2.4 """
+def prob_m_connected(n, m, iters=100):
+    """ estimates the probability that a single ER graph with n nodes, and
+    m random edges, is connected """
+    tf = [is_connected(make_m_graph(n, m))
+          for i in range(iters)]
+    return np.mean(tf)
+
+
 def random_pairs(nodes, p):
     for edge in all_pairs(nodes):
         if flip(p):
             yield edge
 
 
+""" cf. section 2.8, the order of growth for this fn with n nodes and m edges:
+
+initializing seen and stack: constant time
+
+within while loop: 
+    popping off stack: constant
+    checking membership in set: constant
+    adding to set: constant
+    extending stack: linear in num of neighbors
+
+while loop iterations:
+    each node added to seen: n additions in total
+    each node added to stack: 2m additions in total
+
+so, O(n + m)
+"""
 def reachable_nodes(G, start):
     """ returns set of nodes that can be seen from start node in graph G """
     seen = set()
@@ -112,6 +162,7 @@ def foo():
 
 def main():
     n = 10
+    # edge probability at which connectedness probability spikes to 1
     pstar = np.log(n) / n
     # generate probabilities for ER graphs, evenly distributed from
     # 10**(-2.5) to 10**0
@@ -127,6 +178,18 @@ def main():
     plt.axvline(pstar, color='gray')
     plt.plot(ps, ys, color='green')
     plt.show()
+
+    """ for exercise 2.4 """
+    m = 15
+    # generates number of random edges to include by random proportion of total
+    # possible number of edges for n nodes
+    ms = [int(p * n * (n-1) / 2) for p in ps]
+    ys = [prob_m_connected(n, m) for m in ms]
+
+    # plot results
+    plt.axvline(pstar, color='gray')
+    plt.plot(ps, ys, color='green')
+    plt.show()    
     
 
 if __name__ == '__main__':
