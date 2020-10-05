@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from collections import deque
 from ch2 import flip, all_pairs
 
 
@@ -30,6 +31,25 @@ def clustering_coefficient(G):
     cs = [node_clustering(G, node) for node in G]
     return np.nanmean(cs)
 
+
+""" exercise 3.1 """
+def make_regular_graph(n, k):
+    """ returns a regular Graph, i.e., one with n nodes and k neighbors for
+    each node; raises ValueError if this is not possible for given n, k """
+    G = nx.Graph()
+    nodes = range(n)
+    G.add_nodes_from(nodes)
+    a, b, = divmod(k, 2)
+    G.add_edges_from(adjacent_edges(nodes, a))
+
+    if b:
+        # k is odd, so need to add opposite edges
+        if n % 2:
+            # n is also odd
+            raise ValueError("Can't make a regular graph if n and k are odd.")
+        G.add_edges_from(opposite_edges(nodes))
+    return G
+    
 
 def make_ring_lattice(n, k):
     G = nx.Graph()
@@ -83,6 +103,15 @@ def node_clustering(G, u):
     return np.mean(edges)
 
 
+def opposite_edges(nodes):
+    """ generates edges that connect opposite nodes """
+    n = len(nodes)
+    for i, u in enumerate(nodes):
+        j = i + n // 2
+        v = nodes[j % n]
+        yield u, v
+
+
 def path_lengths(G):
     """ helper for characteristic_path_length(); generates shortest path
     lengths between every node pair in given graph """
@@ -90,6 +119,19 @@ def path_lengths(G):
     for source, dist_map in length_iter:
         for dest, dist in dist_map.items():
             yield dist
+
+
+def reachable_nodes_bfs(G, start):
+    """ returns the set of nodes that can be reached from the given start node
+    in the given Graph, with a breadth-first search. O(n + m). """
+    seen = set()
+    queue = deque([start])
+    while queue:
+        node = queue.popleft()
+        if node not in seen:
+            seen.add(node)
+            queue.extend(G.neighbors(node))
+    return seen
 
 
 """ order-of-growth analysis in terms of n nodes and m edges: all operations
@@ -127,61 +169,106 @@ def run_one_graph(n, k, p):
     return mpl, cc
 
 
+def shortest_path_dijkstra(G, source):
+    dist = {source: 0}
+    queue = deque([source])
+    while queue:
+        node = queue.popleft()
+        new_dist = dist[node] + 1
+        neighbors = set(G[node]).difference(dist)
+        for n in neighbors:
+            dist[n] = new_dist
+
+        queue.extend(neighbors)
+    return dist
+
+
+""" exercise 3.2 """
+def sp_dijkstra_sets(G, source):
+    """ implements Dijkstra's breadth-first algorithm for shortest path using
+    sets instead of deque, which is faster """
+    dist = {}
+    new_dist = 0
+    nextlevel = {source}
+    while nextlevel:
+        thislevel = nextlevel
+        nextlevel = set()
+        for v in thislevel:
+            if v not in dist:
+                dist[v] = new_dist
+                nextlevel.update(G[v])
+        new_dist += 1
+    return dist
+
+
 # simple ring lattice with n nodes and k adjacent neighbors for each
 n = 10
 k = 4
 lattice = make_ring_lattice(n, k)
 nx.draw_circular(lattice, node_size = 700, with_labels=True)
+plt.show()
+
+
+d1 = shortest_path_dijkstra(lattice, 0)
+d2 = sp_dijkstra_sets(lattice, 0)
+print("Dijkstra's algorithm with deque: ", d1)
+print("Dijkstra's algorithm with sets: ", d2)
+print("NetworkX's algorithm: ", nx.shortest_path_length(lattice, 0))
+print(f"d1 == d2: {d1 == d2}")
+
+##regular = make_regular_graph(10, 4)
+##nx.draw_circular(regular, node_size = 700, with_labels=True)
 ##plt.show()
+
 
 # Watts-Strogatz (WS) graph with rewire probability p
-p = 0.2
-ws = make_ws_graph(n, k, p)
-nx.draw_circular(ws, node_size = 700, with_labels=True)
+##p = 0.2
+##ws = make_ws_graph(n, k, p)
+##nx.draw_circular(ws, node_size = 700, with_labels=True)
 ##plt.show()
 
-# a few WS graphs side by side
-ns = 100
-plt.subplot(1, 3, 1)
-p = 0.0
-ws = make_ws_graph(n, k, p)
-nx.draw_circular(ws, node_size = ns)
-plt.axis('equal')
-print(f"WS Graph({n}, {k}, {p}):")
-print(f"\t C-bar = {clustering_coefficient(ws)}")
-print(f"\t L = {characteristic_path_length(ws)}")
-
-plt.subplot(1, 3, 2)
-p = 0.2
-ws = make_ws_graph(n, k, p)
-nx.draw_circular(ws, node_size = ns)
-plt.axis('equal')
-print(f"WS Graph({n}, {k}, {p}):")
-print(f"\t C-bar = {clustering_coefficient(ws)}")
-print(f"\t L = {characteristic_path_length(ws)}")
-
-plt.subplot(1, 3, 3)
-p = 1.0
-ws = make_ws_graph(n, k, p)
-nx.draw_circular(ws, node_size = ns)
-plt.axis('equal')
-print(f"WS Graph({n}, {k}, {p}):")
-print(f"\t C-bar = {clustering_coefficient(ws)}")
-print(f"\t L = {characteristic_path_length(ws)}")
-
-plt.show()
-
-# run the experiment
-ps = np.logspace(-4, 0, 9)
-exp = run_experiment(ps)
-# exp is an array with one row and two columns; so extract columns
-L, C = np.transpose(exp)
-
-# normalize data
-L /= L[0]
-C /= C[0]
-
-plt.plot(ps, C, 's-', linewidth=1, label='C(p) / C(0)')
-plt.plot(ps, L, 'o-', linewidth=1, label='L(p) / L(0)')
-plt.xscale('log')
-plt.show()
+### a few WS graphs side by side
+##ns = 100
+##plt.subplot(1, 3, 1)
+##p = 0.0
+##ws = make_ws_graph(n, k, p)
+##nx.draw_circular(ws, node_size = ns)
+##plt.axis('equal')
+##print(f"WS Graph({n}, {k}, {p}):")
+##print(f"\t C-bar = {clustering_coefficient(ws)}")
+##print(f"\t L = {characteristic_path_length(ws)}")
+##
+##plt.subplot(1, 3, 2)
+##p = 0.2
+##ws = make_ws_graph(n, k, p)
+##nx.draw_circular(ws, node_size = ns)
+##plt.axis('equal')
+##print(f"WS Graph({n}, {k}, {p}):")
+##print(f"\t C-bar = {clustering_coefficient(ws)}")
+##print(f"\t L = {characteristic_path_length(ws)}")
+##
+##plt.subplot(1, 3, 3)
+##p = 1.0
+##ws = make_ws_graph(n, k, p)
+##nx.draw_circular(ws, node_size = ns)
+##plt.axis('equal')
+##print(f"WS Graph({n}, {k}, {p}):")
+##print(f"\t C-bar = {clustering_coefficient(ws)}")
+##print(f"\t L = {characteristic_path_length(ws)}")
+##
+##plt.show()
+##
+### run the experiment
+##ps = np.logspace(-4, 0, 9)
+##exp = run_experiment(ps)
+### exp is an array with one row and two columns; so extract columns
+##L, C = np.transpose(exp)
+##
+### normalize data
+##L /= L[0]
+##C /= C[0]
+##
+##plt.plot(ps, C, 's-', linewidth=1, label='C(p) / C(0)')
+##plt.plot(ps, L, 'o-', linewidth=1, label='L(p) / L(0)')
+##plt.xscale('log')
+##plt.show()
