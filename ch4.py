@@ -1,10 +1,53 @@
 """ chapter 4 of Downey, Think Complexity """
 
+import random
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from networkx.algorithms.approximation import average_clustering
-from empiricaldist import Pmf
+from empiricaldist import Pmf, Cdf
+
+
+def _random_subset(repeated_nodes, k):
+    """ selects a random subset of nodes without repetition """
+    targets = set()
+    while len(targets) < k:
+        # targets does not yet have enough neighbors in it
+        x = random.choice(repeated_nodes)
+        # targets is a set, so duplicates are thrown out
+        targets.add(x)
+
+    return targets
+
+
+def barabasi_albert_graph(n, k):
+    # generate Graph with k nodes
+    G = nx.empty_graph(k)
+    # initialize list of neighbors
+    targets = list(range(k))
+    # initialize list of candidate nodes from which neighbors will be picked
+    repeated_nodes = []
+
+    for source in range(k, n):
+        # connect node 'source' to all (i.e., k) neighbors in targets list
+        G.add_edges_from(zip([source] * k, targets))
+
+        """ update pool so that every node in it is repeated for every neighbor
+        it has; e.g., a node with 3 neighbors is there three times """
+        repeated_nodes.extend(targets)
+        repeated_nodes.extend([source] * k)
+
+        """ pick k new neighbors for next iteration; the way repeated_nodes is
+        updated ensures that a node is picked in proportion to the number of
+        neighbors it has """
+        targets = _random_subset(repeated_nodes, k)
+
+    return G
+
+
+def cumulative_prob(pmf, x):
+    ps = [pmf[value] for value in pmf if value <= x]
+    return np.sum(ps)
 
 
 def degrees(G):
@@ -66,7 +109,7 @@ pmf_fb = Pmf.from_seq(degrees(fb))
 pmf_ws = Pmf.from_seq(degrees(ws))
 
 # plot the distributions
-plt.figure(figsize=(8, 4))
+plt.figure(figsize=(8, 4.5))
 plt.subplot(1, 2, 1)
 pmf_fb.plot(label='facebook')
 plt.xlabel('Degree')
@@ -79,6 +122,7 @@ plt.xlabel('Degree')
 plt.legend()
 
 plt.savefig('figs/chap04-1')
+plt.close()
 
 """ the distribution of probabilities for degree of nodes does not match; so,
 we will use the Barabási-Albert (BA) model going forward. This model has the
@@ -92,8 +136,19 @@ nodes that have many neighbors. """
 ba = nx.barabasi_albert_graph(n, int(k_fb/2), seed=15)
 pmf_ba = Pmf.from_seq(degrees(ba))
 
+C_ba = average_clustering(ba)
+L_ba = estimate_path_length(ba)
+
+print(f"BA \t {n} \t {C_ba} \t {L_ba} \t "
+      f"{np.mean(degrees(ba)):.1f} \t {np.std(degrees(ba)):.1f}")
+
+""" now use probability mass function objects to check the probability that a
+node has a particular degree """
+pmf_fb = Pmf.from_seq(degrees(fb))
+pmf_ws = Pmf.from_seq(degrees(ws))
+
 # plot them now in linear scale
-plt.figure(figsize=(8, 4))
+plt.figure(figsize=(8, 4.5))
 plt.subplot(1, 2, 1)
 pmf_fb.plot(label='facebook')
 plt.xlabel('Degree')
@@ -106,5 +161,83 @@ plt.xlabel('Degree')
 plt.legend()
 
 plt.savefig('figs/chap04-2')
+plt.close()
 
-# TODO: now in log-log scale
+# now in log-log scale
+plt.figure(figsize=(8, 4.5))
+options = dict(ls='', marker='.')
+plt.subplot(1, 2, 1)
+pmf_fb.plot(label='facebook', color='C0', **options)
+plt.xlabel('Degree')
+plt.ylabel('PMF')
+plt.xscale('log')
+plt.yscale('log')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+pmf_ba.plot(label='BA model', color='C2', **options)
+plt.xlabel('Degree')
+plt.xscale('log')
+plt.yscale('log')
+plt.legend()
+
+plt.savefig('figs/chap04-3')
+plt.close()
+
+# using Downey's code to make a BA graph and seeing how it works
+##print("Constructing BA(20, 3) graph")
+##ba_bespoke = barabasi_albert_graph(20, 3)
+##nx.draw_circular(ba_bespoke, node_size=700, with_labels=True)
+##plt.show()
+
+""" now use cumulative distribution function objects to represent the data """
+cdf_fb = Cdf.from_seq(degrees(fb), name='facebook')
+cdf_ws = Cdf.from_seq(degrees(ws), name='WS model')
+cdf_ba = Cdf.from_seq(degrees(ba), name='BA model')
+
+# now plot the models on log-x scale to compare with the fb data
+plt.figure(figsize=(8,4.5))
+plt.subplot(1,2,1)
+cdf_fb.plot(color='C0')
+cdf_ws.plot(color='C1')
+plt.xlabel('Degree')
+plt.xscale('log')
+plt.ylabel('CDF')
+plt.legend()
+
+plt.subplot(1,2,2)
+cdf_fb.plot(color='C0')
+cdf_ba.plot(color='C2')
+plt.xlabel('Degree')
+plt.xscale('log')
+plt.legend()
+
+plt.savefig('figs/chap04-4')
+plt.close()
+
+""" this shows that the WS model is very bad, and the BA is okay from the
+median and up. Now we'll use the Complementary CDF to get a closer look at the
+BA model's performance.
+
+Note: if the underlying PMF obeys the power law, then the CCDF will, too. This
+implies further that the CCDF will be a straight line on log-log scale. """
+plt.figure(figsize=(8,4.5))
+plt.subplot(1,2,1)
+(1 - cdf_fb).plot(color='C0')
+(1 - cdf_ws).plot(color='C1')
+plt.xlabel('Degree')
+plt.xscale('log')
+plt.ylabel('CCDF')
+plt.yscale('log')
+plt.legend()
+
+plt.subplot(1,2,2)
+(1 - cdf_fb).plot(color='C0')
+(1 - cdf_ba).plot(color='C2')
+plt.xlabel('Degree')
+plt.xscale('log')
+plt.yscale('log')
+plt.legend()
+
+plt.savefig('figs/chap04-5')
+plt.close()
