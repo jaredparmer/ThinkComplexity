@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 from networkx.algorithms.approximation import average_clustering
 from empiricaldist import Pmf, Cdf
 
+# for exercise 4.3
+import gzip
+from ch2 import all_pairs
+
 
 def _random_subset(repeated_nodes, k):
     """ selects a random subset of nodes without repetition """
@@ -53,6 +57,19 @@ def cumulative_prob(pmf, x):
 def degrees(G):
     """ returns list of degrees for each node in given Graph """
     return [G.degree(u) for u in G]
+
+
+""" for exercise 4.3 """
+def read_actor_network(filename, n=None):
+    G = nx.Graph()
+    with gzip.open(filename) as f:
+        for i, line in enumerate(f):
+            nodes = [int(x) for x in line.split()]
+            G.add_edges_from(all_pairs(nodes))
+            if n and i >= n:
+                break
+
+    return G
 
 
 def read_graph(filename):
@@ -109,20 +126,20 @@ pmf_fb = Pmf.from_seq(degrees(fb))
 pmf_ws = Pmf.from_seq(degrees(ws))
 
 # plot the distributions
-plt.figure(figsize=(8, 4.5))
-plt.subplot(1, 2, 1)
-pmf_fb.plot(label='facebook')
-plt.xlabel('Degree')
-plt.ylabel('PMF')
-plt.legend()
-
-plt.subplot(1, 2, 2)
-pmf_ws.plot(label='WS graph')
-plt.xlabel('Degree')
-plt.legend()
-
-plt.savefig('figs/chap04-1')
-plt.close()
+##plt.figure(figsize=(8, 4.5))
+##plt.subplot(1, 2, 1)
+##pmf_fb.plot(label='facebook')
+##plt.xlabel('Degree')
+##plt.ylabel('PMF')
+##plt.legend()
+##
+##plt.subplot(1, 2, 2)
+##pmf_ws.plot(label='WS graph')
+##plt.xlabel('Degree')
+##plt.legend()
+##
+##plt.savefig('figs/chap04-1')
+##plt.close()
 
 """ the distribution of probabilities for degree of nodes does not match; so,
 we will use the Barabási-Albert (BA) model going forward. This model has the
@@ -148,41 +165,41 @@ pmf_fb = Pmf.from_seq(degrees(fb))
 pmf_ws = Pmf.from_seq(degrees(ws))
 
 # plot them now in linear scale
-plt.figure(figsize=(8, 4.5))
-plt.subplot(1, 2, 1)
-pmf_fb.plot(label='facebook')
-plt.xlabel('Degree')
-plt.ylabel('PMF')
-plt.legend()
-
-plt.subplot(1, 2, 2)
-pmf_ba.plot(label='BA graph')
-plt.xlabel('Degree')
-plt.legend()
-
-plt.savefig('figs/chap04-2')
-plt.close()
+##plt.figure(figsize=(8, 4.5))
+##plt.subplot(1, 2, 1)
+##pmf_fb.plot(label='facebook')
+##plt.xlabel('Degree')
+##plt.ylabel('PMF')
+##plt.legend()
+##
+##plt.subplot(1, 2, 2)
+##pmf_ba.plot(label='BA graph')
+##plt.xlabel('Degree')
+##plt.legend()
+##
+##plt.savefig('figs/chap04-2')
+##plt.close()
 
 # now in log-log scale
-plt.figure(figsize=(8, 4.5))
-options = dict(ls='', marker='.')
-plt.subplot(1, 2, 1)
-pmf_fb.plot(label='facebook', color='C0', **options)
-plt.xlabel('Degree')
-plt.ylabel('PMF')
-plt.xscale('log')
-plt.yscale('log')
-plt.legend()
-
-plt.subplot(1, 2, 2)
-pmf_ba.plot(label='BA model', color='C2', **options)
-plt.xlabel('Degree')
-plt.xscale('log')
-plt.yscale('log')
-plt.legend()
-
-plt.savefig('figs/chap04-3')
-plt.close()
+##plt.figure(figsize=(8, 4.5))
+##options = dict(ls='', marker='.')
+##plt.subplot(1, 2, 1)
+##pmf_fb.plot(label='facebook', color='C0', **options)
+##plt.xlabel('Degree')
+##plt.ylabel('PMF')
+##plt.xscale('log')
+##plt.yscale('log')
+##plt.legend()
+##
+##plt.subplot(1, 2, 2)
+##pmf_ba.plot(label='BA model', color='C2', **options)
+##plt.xlabel('Degree')
+##plt.xscale('log')
+##plt.yscale('log')
+##plt.legend()
+##
+##plt.savefig('figs/chap04-3')
+##plt.close()
 
 # using Downey's code to make a BA graph and seeing how it works
 ##print("Constructing BA(20, 3) graph")
@@ -196,24 +213,24 @@ cdf_ws = Cdf.from_seq(degrees(ws), name='WS model')
 cdf_ba = Cdf.from_seq(degrees(ba), name='BA model')
 
 # now plot the models on log-x scale to compare with the fb data
-plt.figure(figsize=(8,4.5))
-plt.subplot(1,2,1)
-cdf_fb.plot(color='C0')
-cdf_ws.plot(color='C1')
-plt.xlabel('Degree')
-plt.xscale('log')
-plt.ylabel('CDF')
-plt.legend()
-
-plt.subplot(1,2,2)
-cdf_fb.plot(color='C0')
-cdf_ba.plot(color='C2')
-plt.xlabel('Degree')
-plt.xscale('log')
-plt.legend()
-
-plt.savefig('figs/chap04-4')
-plt.close()
+##plt.figure(figsize=(8,4.5))
+##plt.subplot(1,2,1)
+##cdf_fb.plot(color='C0')
+##cdf_ws.plot(color='C1')
+##plt.xlabel('Degree')
+##plt.xscale('log')
+##plt.ylabel('CDF')
+##plt.legend()
+##
+##plt.subplot(1,2,2)
+##cdf_fb.plot(color='C0')
+##cdf_ba.plot(color='C2')
+##plt.xlabel('Degree')
+##plt.xscale('log')
+##plt.legend()
+##
+##plt.savefig('figs/chap04-4')
+##plt.close()
 
 """ this shows that the WS model is very bad, and the BA is okay from the
 median and up. Now we'll use the Complementary CDF to get a closer look at the
@@ -221,23 +238,111 @@ BA model's performance.
 
 Note: if the underlying PMF obeys the power law, then the CCDF will, too. This
 implies further that the CCDF will be a straight line on log-log scale. """
-plt.figure(figsize=(8,4.5))
-plt.subplot(1,2,1)
-(1 - cdf_fb).plot(color='C0')
-(1 - cdf_ws).plot(color='C1')
+##plt.figure(figsize=(8,4.5))
+##plt.subplot(1,2,1)
+##(1 - cdf_fb).plot(color='C0')
+##(1 - cdf_ws).plot(color='C1')
+##plt.xlabel('Degree')
+##plt.xscale('log')
+##plt.ylabel('CCDF')
+##plt.yscale('log')
+##plt.legend()
+##
+##plt.subplot(1,2,2)
+##(1 - cdf_fb).plot(color='C0')
+##(1 - cdf_ba).plot(color='C2')
+##plt.xlabel('Degree')
+##plt.xscale('log')
+##plt.yscale('log')
+##plt.legend()
+##
+##plt.savefig('figs/chap04-5')
+##plt.close()
+
+""" exercise 4.2. We'll now try to use the Holme-Kim algorithm to generate
+a growing graph that approximates the fb data's features. Such a graph obeys
+the power law. """
+
+""" the key difference from the BA model is that there is a given probability
+that a new node, after getting a random edge and thus a neighbor, also gets an
+edge to one of its neighbor's neighbors, thus forming a 'triangle'. """
+
+# using p=1.0 to maximize clustering, still not high enough to match fb
+hk = nx.powerlaw_cluster_graph(n, int(k_fb/2), p=1, seed=15)
+
+C_hk = average_clustering(hk)
+L_hk = estimate_path_length(hk)
+
+print(f"HK \t {n} \t {C_hk} \t {L_hk} \t "
+      f"{np.mean(degrees(hk)):.1f} \t {np.std(degrees(hk)):.1f}")
+
+# now compare distributions
+cdf_hk = Cdf.from_seq(degrees(hk), name='HK model')
+
+##plt.figure(figsize=(10,4.5))
+##plt.subplot(1,2,1)
+##cdf_fb.plot(color='C0')
+##cdf_hk.plot(color='C1')
+##plt.xlabel('Degree')
+##plt.xscale('log')
+##plt.ylabel('CDF')
+##plt.legend()
+##
+##plt.subplot(1,2,2)
+##(1 - cdf_fb).plot(color='C0')
+##(1 - cdf_hk).plot(color='C1')
+##plt.xlabel('Degree')
+##plt.xscale('log')
+##plt.yscale('log')
+##plt.ylabel('CCDF')
+##plt.legend()
+##
+##plt.savefig('figs/chap04-6')
+##plt.close()
+
+""" upshot: the HK model's distribution is about as good as the BA model's, but
+it has higher clustering. """
+
+""" Exercise 4.3. Similar sort of analysis on actor network data, which is what
+Barabási and Albert used in their original presentation of the model. """
+
+actors = read_actor_network('actor.dat.gz', n=10000)
+C_actors = average_clustering(actors, trials=10000)
+
+print()
+print("Actor collaboration data.")
+print(f"actors \t {n} \t {C_actors} \t "
+      f"{np.mean(degrees(actors)):.1f} \t {np.std(degrees(actors)):.1f}")
+
+# not plot it
+pmf_actors = Pmf.from_seq(degrees(actors), name='actors')
+cdf_actors = Cdf.from_seq(degrees(actors), name='actors')
+
+# plot them now in log scale
+plt.figure(figsize=(12, 4.5))
+plt.subplot(1, 3, 1)
+options = dict(ls='', marker='.')
+pmf_actors.plot(label='actors', **options)
+plt.xlabel('Degree')
+plt.ylabel('PMF')
+plt.xscale('log')
+plt.yscale('log')
+plt.legend()
+
+plt.subplot(1, 3, 2)
+cdf_actors.plot(label='actors')
 plt.xlabel('Degree')
 plt.xscale('log')
+plt.ylabel('CDF')
+plt.legend()
+
+plt.subplot(1, 3, 3)
+(1 - cdf_actors).plot(label='actors')
+plt.xlabel('Degree')
+plt.xscale('log')
+plt.yscale('log')
 plt.ylabel('CCDF')
-plt.yscale('log')
 plt.legend()
 
-plt.subplot(1,2,2)
-(1 - cdf_fb).plot(color='C0')
-(1 - cdf_ba).plot(color='C2')
-plt.xlabel('Degree')
-plt.xscale('log')
-plt.yscale('log')
-plt.legend()
-
-plt.savefig('figs/chap04-5')
+plt.savefig('figs/chap04-7')
 plt.close()
